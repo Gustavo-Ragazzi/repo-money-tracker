@@ -16,6 +16,6 @@ selected_module = f"pages.{page_names[selection]}"
 module = importlib.import_module(selected_module)
 
 if hasattr(module, "app"):
-  module.app()
+    module.app()
 else:
-  st.error(f"Page {selected_module} has no app() function.")
+    st.error(f"Page {selected_module} has no app() function.")

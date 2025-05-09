@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from models.item import Item
 from typing import List
 
+
 @dataclass
 class Purchase:
     item: Item
