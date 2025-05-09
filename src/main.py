@@ -1,6 +1,9 @@
 import streamlit as st
 import importlib
 import pathlib
+from services.db.init_db import init_db
+
+init_db()
 
 st.set_page_config(page_title="Game Manager", layout="wide")
 
