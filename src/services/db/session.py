@@ -1,6 +1,6 @@
-from typing import List
+from typing import List, Optional
 from .db_connection import get_connection
-from models.session import Session
+from models.session import Session, SessionFullData, PlayerWithState, PlayerLevelState
 from datetime import datetime
 
 
@@ -13,6 +13,72 @@ def get_active_sessions() -> List[Session]:
       ORDER BY created_at DESC
     """).fetchall()
     return [Session.from_row(row) for row in rows]
+
+def get_session_full_data(session_id: int) -> Optional[SessionFullData]:
+  with get_connection() as conn:
+    rows = conn.execute(
+      """
+      SELECT
+        s.id, s.name, s.actual_level, s.total_money, s.is_finished, s.deleted, s.created_at,
+        p.id, p.name, p.is_host, p.created_at,
+        l.id, l.previous_remaining_money, l.collected_money, l.total_available,
+        pls.purchases_json, pls.loans_given_json, pls.total_donated, pls.total_received,
+        pls.previous_remaining, pls.post_donation_balance, pls.final_balance
+      FROM sessions s
+      LEFT JOIN players p ON p.session_id = s.id
+      LEFT JOIN levels l ON l.session_id = s.id AND l.number = s.actual_level
+      LEFT JOIN player_level_state pls ON pls.level_id = l.id AND pls.player_id = p.id
+      WHERE s.id = ?
+      """,
+      (session_id,)
+    ).fetchall()
+
+  if not rows:
+    return None
+
+  session_row = rows[0]
+  session = SessionFullData(
+    id=session_row[0],
+    name=session_row[1],
+    actual_level=session_row[2],
+    total_money=session_row[3],
+    is_finished=bool(session_row[4]),
+    deleted=bool(session_row[5]),
+    created_at=session_row[6],
+    level_id=session_row[11],
+    previous_remaining_money=session_row[12],
+    collected_money=session_row[13],
+    total_available=session_row[14],
+    players=[]
+  )
+
+  for row in rows:
+    if row[7] is None:
+      continue
+
+    if row[15] is not None:
+      level_state = PlayerLevelState(
+        purchases_json=row[15],
+        loans_given_json=row[16],
+        total_donated=row[17],
+        total_received=row[18],
+        previous_remaining=row[19],
+        post_donation_balance=row[20],
+        final_balance=row[21],
+      )
+    else:
+      level_state = None
+
+    player = PlayerWithState(
+      id=row[7],
+      name=row[8],
+      is_host=bool(row[9]),
+      created_at=row[10],
+      level_state=level_state
+    )
+    session.players.append(player)
+
+  return session
 
 
 def create_session(name: str, player_names: list[str]) -> int:
