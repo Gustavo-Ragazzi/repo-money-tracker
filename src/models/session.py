@@ -1,15 +1,24 @@
 from dataclasses import dataclass
-from models.player import Player
-from models.loan import Loan
-from typing import List
 
 
 @dataclass
 class Session:
-    id: str
+    id: int
     name: str
-    created_at: str
-    round: int
+    actual_level: int
     total_money: float
-    players: List[Player]
-    loans: List[Loan]
+    is_finished: bool
+    deleted: bool
+    created_at: str
+
+    @staticmethod
+    def from_row(row: tuple) -> "Session":
+        return Session(
+            id=row[0],
+            name=row[1],
+            actual_level=row[2],
+            total_money=row[3],
+            is_finished=bool(row[4]),
+            deleted=bool(row[5]),
+            created_at=row[6],
+        )
