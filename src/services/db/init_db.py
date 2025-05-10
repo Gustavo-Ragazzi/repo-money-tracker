@@ -12,7 +12,7 @@ def init_db():
                 total_money REAL NOT NULL,
                 is_finished INTEGER NOT NULL DEFAULT 0,  -- 0 = ongoing, 1 = finished
                 deleted INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL
+                created_at DATETIME NOT NULL
             )
             """
         )
@@ -21,11 +21,13 @@ def init_db():
             """
             CREATE TABLE IF NOT EXISTS players (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slot INTEGER NOT NULL,
                 session_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
                 is_host INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL,
-                FOREIGN KEY (session_id) REFERENCES sessions(id)
+                created_at DATETIME NOT NULL,
+                FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+                UNIQUE(session_id, slot)
             )
             """
         )
@@ -39,8 +41,9 @@ def init_db():
                 previous_remaining_money REAL NOT NULL,  -- leftover previous level
                 collected_money REAL NOT NULL,           -- collected money this level
                 total_available REAL NOT NULL,           -- sum of previous + collected
-                created_at TEXT NOT NULL,
-                FOREIGN KEY (session_id) REFERENCES sessions(id)
+                created_at DATETIME NOT NULL,
+                FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+                UNIQUE(session_id, number)
             )
             """
         )
@@ -58,10 +61,35 @@ def init_db():
                 previous_remaining REAL NOT NULL,         -- left from previous level
                 post_donation_balance REAL NOT NULL,      -- prev + received - donated
                 final_balance REAL NOT NULL,              -- computed value
-                created_at TEXT NOT NULL,
-                FOREIGN KEY (level_id) REFERENCES levels(id),
-                FOREIGN KEY (player_id) REFERENCES players(id)
+                created_at DATETIME NOT NULL,
+                FOREIGN KEY (level_id) REFERENCES levels(id) ON DELETE CASCADE,
+                FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
             )
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_player_session ON players(session_id)
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_level_session ON levels(session_id)
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_state_level ON player_level_state(level_id)
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS
+            idx_state_player ON player_level_state(player_id)
             """
         )
 
